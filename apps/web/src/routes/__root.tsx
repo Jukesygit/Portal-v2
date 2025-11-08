@@ -1,17 +1,20 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { Box } from '@mui/material';
+import { AuthProvider } from '../contexts/AuthContext';
 
 function RootComponent() {
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Outlet />
-    </Box>
+    <AuthProvider>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Outlet />
+      </Box>
+    </AuthProvider>
   );
 }
 
