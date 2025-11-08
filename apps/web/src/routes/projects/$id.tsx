@@ -23,6 +23,7 @@ import {
 import { useProject, useDeleteProject } from '../../hooks/useProjects';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const statusColors: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
   planning: 'info',
@@ -43,6 +44,7 @@ function ProjectDetailComponent() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const { data: project, isLoading, error } = useProject(id);
   const deleteProject = useDeleteProject();
 
@@ -54,9 +56,10 @@ function ProjectDetailComponent() {
     ) {
       try {
         await deleteProject.mutateAsync(id);
+        showSuccess('Project deleted successfully');
         navigate({ to: '/projects' });
       } catch (err) {
-        console.error('Delete failed:', err);
+        showError('Failed to delete project. It may have active work orders.');
       }
     }
   };

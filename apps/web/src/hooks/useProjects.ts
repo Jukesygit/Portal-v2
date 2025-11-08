@@ -28,6 +28,14 @@ export interface Project {
   _count: {
     workOrders: number;
   };
+  workOrders?: Array<{
+    id: string;
+    woNumber: string;
+    description: string;
+    status: string;
+    startDate: string;
+    targetEndDate?: string;
+  }>;
 }
 
 export interface ProjectFilters {

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -10,19 +10,34 @@ import {
   MenuItem,
   Grid,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { useCreateClient } from '../../hooks/useClients';
+import { useClient, useUpdateClient } from '../../hooks/useClients';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { useNotification } from '../../contexts/NotificationContext';
 import { ApiClientError } from '../../lib/api-client';
 
-function NewClientComponent() {
+function EditClientComponent() {
+  const { id } = Route.useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
-  const createClient = useCreateClient();
+  const updateClient = useUpdateClient(id);
+  const { data: client, isLoading: loadingClient } = useClient(id);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    contactPerson: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    notes: string;
+    status: 'active' | 'inactive' | 'prospect';
+  }>({
     name: '',
     contactPerson: '',
     email: '',
@@ -31,13 +46,31 @@ function NewClientComponent() {
     city: '',
     state: '',
     postalCode: '',
-    country: 'USA',
+    country: '',
     notes: '',
-    status: 'active' as const,
+    status: 'active',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        name: client.name,
+        contactPerson: client.contactPerson || '',
+        email: client.email || '',
+        phone: client.phone || '',
+        address: client.address || '',
+        city: client.city || '',
+        state: client.state || '',
+        postalCode: client.postalCode || '',
+        country: client.country || '',
+        notes: client.notes || '',
+        status: client.status,
+      });
+    }
+  }, [client]);
 
   const handleChange = (field: string) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -76,7 +109,7 @@ function NewClientComponent() {
     }
 
     try {
-      await createClient.mutateAsync({
+      await updateClient.mutateAsync({
         name: formData.name,
         contactPerson: formData.contactPerson || undefined,
         email: formData.email || undefined,
@@ -90,33 +123,59 @@ function NewClientComponent() {
         status: formData.status,
       });
 
-      showSuccess('Client created successfully');
-      navigate({ to: '/clients' });
+      showSuccess('Client updated successfully');
+      navigate({ to: `/clients/${id}` });
     } catch (err) {
       if (err instanceof ApiClientError) {
         setSubmitError(err.error.message);
         showError(err.error.message);
       } else {
-        const errorMsg = 'Failed to create client. Please try again.';
+        const errorMsg = 'Failed to update client. Please try again.';
         setSubmitError(errorMsg);
         showError(errorMsg);
       }
     }
   };
 
+  if (loadingClient) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '50vh',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!client) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Alert severity="error">Client not found</Alert>
+      </Container>
+    );
+  }
+
   return (
-    <ProtectedRoute requiredPermission="client:create">
+    <ProtectedRoute requiredPermission="client:update">
       <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ mb: 4 }}>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate({ to: '/clients' })}
+            onClick={() => navigate({ to: `/clients/${id}` })}
             sx={{ mb: 2 }}
           >
-            Back to Clients
+            Back to Client
           </Button>
           <Typography variant="h4" component="h1">
-            Create New Client
+            Edit Client
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            {client.name}
           </Typography>
         </Box>
 
@@ -138,7 +197,6 @@ function NewClientComponent() {
                   error={!!errors.name}
                   helperText={errors.name}
                   required
-                  placeholder="ACME Corporation"
                 />
               </Grid>
 
@@ -148,7 +206,6 @@ function NewClientComponent() {
                   label="Contact Person"
                   value={formData.contactPerson}
                   onChange={handleChange('contactPerson')}
-                  placeholder="John Doe"
                 />
               </Grid>
 
@@ -175,7 +232,6 @@ function NewClientComponent() {
                   onChange={handleChange('email')}
                   error={!!errors.email}
                   helperText={errors.email}
-                  placeholder="contact@acme.com"
                 />
               </Grid>
 
@@ -185,7 +241,6 @@ function NewClientComponent() {
                   label="Phone"
                   value={formData.phone}
                   onChange={handleChange('phone')}
-                  placeholder="+1 (555) 123-4567"
                 />
               </Grid>
 
@@ -195,7 +250,6 @@ function NewClientComponent() {
                   label="Address"
                   value={formData.address}
                   onChange={handleChange('address')}
-                  placeholder="123 Main Street"
                 />
               </Grid>
 
@@ -205,7 +259,6 @@ function NewClientComponent() {
                   label="City"
                   value={formData.city}
                   onChange={handleChange('city')}
-                  placeholder="Houston"
                 />
               </Grid>
 
@@ -215,7 +268,6 @@ function NewClientComponent() {
                   label="State/Province"
                   value={formData.state}
                   onChange={handleChange('state')}
-                  placeholder="TX"
                 />
               </Grid>
 
@@ -225,7 +277,6 @@ function NewClientComponent() {
                   label="Postal Code"
                   value={formData.postalCode}
                   onChange={handleChange('postalCode')}
-                  placeholder="77001"
                 />
               </Grid>
 
@@ -235,7 +286,6 @@ function NewClientComponent() {
                   label="Country"
                   value={formData.country}
                   onChange={handleChange('country')}
-                  placeholder="USA"
                 />
               </Grid>
 
@@ -247,7 +297,6 @@ function NewClientComponent() {
                   onChange={handleChange('notes')}
                   multiline
                   rows={4}
-                  placeholder="Additional notes about this client..."
                 />
               </Grid>
 
@@ -255,17 +304,17 @@ function NewClientComponent() {
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                   <Button
                     variant="outlined"
-                    onClick={() => navigate({ to: '/clients' })}
-                    disabled={createClient.isPending}
+                    onClick={() => navigate({ to: `/clients/${id}` })}
+                    disabled={updateClient.isPending}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     variant="contained"
-                    disabled={createClient.isPending}
+                    disabled={updateClient.isPending}
                   >
-                    {createClient.isPending ? 'Creating...' : 'Create Client'}
+                    {updateClient.isPending ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </Box>
               </Grid>
@@ -277,6 +326,6 @@ function NewClientComponent() {
   );
 }
 
-export const Route = createFileRoute('/clients/new')({
-  component: NewClientComponent,
+export const Route = createFileRoute('/clients/$id/edit')({
+  component: EditClientComponent,
 });

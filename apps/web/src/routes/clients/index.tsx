@@ -30,10 +30,12 @@ import {
 import { useClients, useDeleteClient } from '../../hooks/useClients';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 function ClientsListComponent() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [search, setSearch] = useState('');
@@ -61,8 +63,9 @@ function ClientsListComponent() {
     if (window.confirm(`Are you sure you want to delete client "${name}"?`)) {
       try {
         await deleteClient.mutateAsync(id);
+        showSuccess('Client deleted successfully');
       } catch (err) {
-        console.error('Delete failed:', err);
+        showError('Failed to delete client. It may have active projects.');
       }
     }
   };

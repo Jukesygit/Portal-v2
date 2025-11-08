@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -13,37 +13,70 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { useCreateProject } from '../../hooks/useProjects';
+import { useProject, useUpdateProject } from '../../hooks/useProjects';
 import { useClients } from '../../hooks/useClients';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { useNotification } from '../../contexts/NotificationContext';
 import { ApiClientError } from '../../lib/api-client';
 
-function NewProjectComponent() {
+function EditProjectComponent() {
+  const { id } = Route.useParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
-  const createProject = useCreateProject();
+  const updateProject = useUpdateProject(id);
+  const { data: project, isLoading: loadingProject } = useProject(id);
   const { data: clientsData, isLoading: loadingClients } = useClients({ limit: 100 });
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    projectNumber: string;
+    name: string;
+    description: string;
+    clientId: string;
+    startDate: string;
+    targetEndDate: string;
+    actualEndDate: string;
+    status: 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+  }>({
     projectNumber: '',
     name: '',
     description: '',
     clientId: '',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: '',
     targetEndDate: '',
-    status: 'planning' as const,
-    priority: 'medium' as const,
+    actualEndDate: '',
+    status: 'planning',
+    priority: 'medium',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Populate form when project data loads
+  useEffect(() => {
+    if (project) {
+      const startDate = project.startDate?.split('T')[0] || '';
+      const targetEndDate = project.targetEndDate?.split('T')[0] || '';
+      const actualEndDate = project.actualEndDate?.split('T')[0] || '';
+
+      setFormData({
+        projectNumber: project.projectNumber,
+        name: project.name,
+        description: project.description || '',
+        clientId: project.clientId,
+        startDate,
+        targetEndDate,
+        actualEndDate,
+        status: project.status,
+        priority: project.priority,
+      });
+    }
+  }, [project]);
+
   const handleChange = (field: string) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    // Clear error for this field
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -56,9 +89,6 @@ function NewProjectComponent() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.projectNumber.trim()) {
-      newErrors.projectNumber = 'Project number is required';
-    }
     if (!formData.name.trim()) {
       newErrors.name = 'Project name is required';
     }
@@ -68,8 +98,11 @@ function NewProjectComponent() {
     if (!formData.startDate) {
       newErrors.startDate = 'Start date is required';
     }
-    if (formData.targetEndDate && formData.startDate && formData.targetEndDate < formData.startDate) {
+    if (formData.targetEndDate && formData.targetEndDate < formData.startDate) {
       newErrors.targetEndDate = 'Target end date must be after start date';
+    }
+    if (formData.actualEndDate && formData.actualEndDate < formData.startDate) {
+      newErrors.actualEndDate = 'Actual end date must be after start date';
     }
 
     setErrors(newErrors);
@@ -84,50 +117,71 @@ function NewProjectComponent() {
       return;
     }
 
-    // After validation, we know required fields are populated
-    if (!formData.startDate || !formData.projectNumber || !formData.name || !formData.clientId) {
-      return;
-    }
-
     try {
-      await createProject.mutateAsync({
-        projectNumber: formData.projectNumber,
+      await updateProject.mutateAsync({
         name: formData.name,
         description: formData.description || undefined,
         clientId: formData.clientId,
         startDate: formData.startDate,
         targetEndDate: formData.targetEndDate || undefined,
+        actualEndDate: formData.actualEndDate || undefined,
         status: formData.status,
         priority: formData.priority,
       });
 
-      showSuccess('Project created successfully');
-      navigate({ to: '/projects' });
+      showSuccess('Project updated successfully');
+      navigate({ to: `/projects/${id}` });
     } catch (err) {
       if (err instanceof ApiClientError) {
         setSubmitError(err.error.message);
         showError(err.error.message);
       } else {
-        const errorMsg = 'Failed to create project. Please try again.';
+        const errorMsg = 'Failed to update project. Please try again.';
         setSubmitError(errorMsg);
         showError(errorMsg);
       }
     }
   };
 
+  if (loadingProject) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '50vh',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!project) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Alert severity="error">Project not found</Alert>
+      </Container>
+    );
+  }
+
   return (
-    <ProtectedRoute requiredPermission="project:create">
+    <ProtectedRoute requiredPermission="project:update">
       <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ mb: 4 }}>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate({ to: '/projects' })}
+            onClick={() => navigate({ to: `/projects/${id}` })}
             sx={{ mb: 2 }}
           >
-            Back to Projects
+            Back to Project
           </Button>
           <Typography variant="h4" component="h1">
-            Create New Project
+            Edit Project
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            {project.projectNumber}
           </Typography>
         </Box>
 
@@ -145,11 +199,8 @@ function NewProjectComponent() {
                   fullWidth
                   label="Project Number"
                   value={formData.projectNumber}
-                  onChange={handleChange('projectNumber')}
-                  error={!!errors.projectNumber}
-                  helperText={errors.projectNumber}
-                  required
-                  placeholder="PRJ-2024-001"
+                  disabled
+                  helperText="Project number cannot be changed"
                 />
               </Grid>
 
@@ -161,7 +212,7 @@ function NewProjectComponent() {
                   value={formData.clientId}
                   onChange={handleChange('clientId')}
                   error={!!errors.clientId}
-                  helperText={errors.clientId || 'Select the client for this project'}
+                  helperText={errors.clientId}
                   required
                   disabled={loadingClients}
                 >
@@ -169,8 +220,6 @@ function NewProjectComponent() {
                     <MenuItem disabled>
                       <CircularProgress size={20} />
                     </MenuItem>
-                  ) : clientsData?.data.length === 0 ? (
-                    <MenuItem disabled>No clients available</MenuItem>
                   ) : (
                     clientsData?.data.map((client) => (
                       <MenuItem key={client.id} value={client.id}>
@@ -190,7 +239,6 @@ function NewProjectComponent() {
                   error={!!errors.name}
                   helperText={errors.name}
                   required
-                  placeholder="Pipeline Inspection - Main Street"
                 />
               </Grid>
 
@@ -202,7 +250,6 @@ function NewProjectComponent() {
                   onChange={handleChange('description')}
                   multiline
                   rows={4}
-                  placeholder="Detailed description of the project scope and objectives..."
                 />
               </Grid>
 
@@ -237,7 +284,7 @@ function NewProjectComponent() {
                 </TextField>
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   type="date"
@@ -251,7 +298,7 @@ function NewProjectComponent() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   type="date"
@@ -264,21 +311,34 @@ function NewProjectComponent() {
                 />
               </Grid>
 
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Actual End Date"
+                  value={formData.actualEndDate}
+                  onChange={handleChange('actualEndDate')}
+                  error={!!errors.actualEndDate}
+                  helperText={errors.actualEndDate || 'Optional'}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                   <Button
                     variant="outlined"
-                    onClick={() => navigate({ to: '/projects' })}
-                    disabled={createProject.isPending}
+                    onClick={() => navigate({ to: `/projects/${id}` })}
+                    disabled={updateProject.isPending}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     variant="contained"
-                    disabled={createProject.isPending}
+                    disabled={updateProject.isPending}
                   >
-                    {createProject.isPending ? 'Creating...' : 'Create Project'}
+                    {updateProject.isPending ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </Box>
               </Grid>
@@ -290,6 +350,6 @@ function NewProjectComponent() {
   );
 }
 
-export const Route = createFileRoute('/projects/new')({
-  component: NewProjectComponent,
+export const Route = createFileRoute('/projects/$id/edit')({
+  component: EditProjectComponent,
 });

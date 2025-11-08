@@ -30,6 +30,7 @@ import {
 import { useProjects, useDeleteProject } from '../../hooks/useProjects';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const statusColors: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
   planning: 'info',
@@ -49,6 +50,7 @@ const priorityColors: Record<string, 'default' | 'info' | 'warning' | 'error'> =
 function ProjectsListComponent() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [search, setSearch] = useState('');
@@ -78,8 +80,9 @@ function ProjectsListComponent() {
     if (window.confirm(`Are you sure you want to delete project ${projectNumber}?`)) {
       try {
         await deleteProject.mutateAsync(id);
+        showSuccess('Project deleted successfully');
       } catch (err) {
-        console.error('Delete failed:', err);
+        showError('Failed to delete project. It may have active work orders.');
       }
     }
   };

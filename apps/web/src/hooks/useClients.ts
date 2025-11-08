@@ -23,6 +23,14 @@ export interface Client {
   _count?: {
     projects: number;
   };
+  projects?: Array<{
+    id: string;
+    projectNumber: string;
+    name: string;
+    status: string;
+    startDate: string;
+    targetEndDate?: string;
+  }>;
 }
 
 export interface ClientFilters {
