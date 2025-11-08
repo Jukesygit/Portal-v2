@@ -1,0 +1,495 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===================================================================
+// ORGANIZATIONS & USERS
+// ===================================================================
+
+model Organization {
+  id                String   @id @default(uuid())
+  name              String
+  subscriptionTier  String   @default("free") // free, pro, enterprise
+  settings          Json     @default("{}")
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  users             User[]
+  projects          Project[]
+  assets            Asset[]
+  equipment         Equipment[]
+  clients           Client[]
+  procedures        Procedure[]
+  ncrs              NonConformanceReport[]
+  audits            Audit[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  organizationId String
+  email          String    @unique
+  passwordHash   String
+  role           String    // admin, manager, inspector, viewer
+  status         String    @default("active") // active, inactive, suspended
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  profile        UserProfile?
+  certifications Certification[]
+  createdProjects Project[] @relation("createdProjects")
+  updatedProjects Project[] @relation("updatedProjects")
+  assignedWorkOrders WorkOrder[]
+  createdWorkOrders WorkOrder[] @relation("createdWorkOrders")
+  inspections    Inspection[]
+  schedules      Schedule[]
+  timesheets     Timesheet[]
+  trainingRecords TrainingRecord[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("users")
+}
+
+model UserProfile {
+  userId           String   @id
+  firstName        String
+  lastName         String
+  phone            String?
+  emergencyContact String?
+  hireDate         DateTime?
+  terminationDate  DateTime?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@map("user_profiles")
+}
+
+// ===================================================================
+// PROJECT MANAGEMENT
+// ===================================================================
+
+model Project {
+  id             String    @id @default(uuid())
+  organizationId String
+  projectNumber  String
+  name           String
+  clientId       String?
+  status         String    @default("planning") // planning, active, on_hold, completed, cancelled
+  startDate      DateTime?
+  endDate        DateTime?
+  budgetAmount   Decimal?  @db.Decimal(15, 2)
+  actualCost     Decimal?  @db.Decimal(15, 2)
+  scope          Json      @default("{}")
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  createdBy      String
+  updatedBy      String?
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  client         Client?      @relation(fields: [clientId], references: [id])
+  creator        User         @relation("createdProjects", fields: [createdBy], references: [id])
+  updater        User?        @relation("updatedProjects", fields: [updatedBy], references: [id])
+  workOrders     WorkOrder[]
+
+  @@unique([organizationId, projectNumber])
+  @@index([organizationId, status])
+  @@index([clientId])
+  @@map("projects")
+}
+
+model WorkOrder {
+  id               String    @id @default(uuid())
+  projectId        String
+  woNumber         String
+  assignedTo       String?
+  status           String    @default("pending") // pending, in_progress, on_hold, completed, cancelled
+  priority         String    @default("medium") // low, medium, high, critical
+  scheduledStart   DateTime?
+  scheduledEnd     DateTime?
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  instructions     String?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+  createdBy        String
+
+  // Relations
+  project          Project      @relation(fields: [projectId], references: [id])
+  assignee         User?        @relation(fields: [assignedTo], references: [id])
+  creator          User         @relation("createdWorkOrders", fields: [createdBy], references: [id])
+  inspections      Inspection[]
+
+  @@index([projectId, status])
+  @@index([assignedTo])
+  @@map("work_orders")
+}
+
+model Asset {
+  id             String    @id @default(uuid())
+  organizationId String
+  parentAssetId  String?
+  assetNumber    String
+  name           String
+  assetType      String    // facility, system, component, weld
+  criticality    String    @default("medium") // low, medium, high, critical
+  location       Json      @default("{}")
+  specifications Json      @default("{}")
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  parent         Asset?       @relation("assetHierarchy", fields: [parentAssetId], references: [id])
+  children       Asset[]      @relation("assetHierarchy")
+  inspections    Inspection[]
+
+  @@unique([organizationId, assetNumber])
+  @@index([organizationId])
+  @@index([parentAssetId])
+  @@map("assets")
+}
+
+model Inspection {
+  id               String    @id @default(uuid())
+  workOrderId      String
+  assetId          String
+  inspectorId      String
+  inspectionType   String    // RT, UT, MT, PT, VT, ET, TOFD
+  procedureId      String?
+  status           String    @default("planned") // planned, in_progress, completed, failed
+  inspectionDate   DateTime?
+  results          Json      @default("{}")
+  acceptanceStatus String?   // accept, repair, reject
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  workOrder        WorkOrder   @relation(fields: [workOrderId], references: [id])
+  asset            Asset       @relation(fields: [assetId], references: [id])
+  inspector        User        @relation(fields: [inspectorId], references: [id])
+  procedure        Procedure?  @relation(fields: [procedureId], references: [id])
+  ncrs             NonConformanceReport[]
+
+  @@index([workOrderId])
+  @@index([assetId])
+  @@index([inspectorId])
+  @@map("inspections")
+}
+
+// ===================================================================
+// PERSONNEL MANAGEMENT
+// ===================================================================
+
+model Certification {
+  id                   String    @id @default(uuid())
+  userId               String
+  method               String    // RT, UT, MT, PT, VT, ET, TOFD
+  level                Int       // 1, 2, 3 (I, II, III)
+  standard             String    // ASNT_SNT_TC_1A, ISO_9712, EN_473
+  certificationNumber  String
+  issueDate            DateTime
+  expirationDate       DateTime
+  issuingBody          String
+  documentUrl          String?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  // Relations
+  user                 User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, expirationDate])
+  @@map("certifications")
+}
+
+model TrainingRecord {
+  id             String    @id @default(uuid())
+  userId         String
+  trainingType   String
+  trainingDate   DateTime
+  hours          Decimal   @db.Decimal(5, 2)
+  instructor     String?
+  certificateUrl String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("training_records")
+}
+
+model Schedule {
+  id             String    @id @default(uuid())
+  userId         String
+  workOrderId    String?
+  startDatetime  DateTime
+  endDatetime    DateTime
+  type           String    // work, training, leave, unavailable
+  status         String    @default("planned") // planned, confirmed, completed, cancelled
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("schedules")
+}
+
+model Timesheet {
+  id             String    @id @default(uuid())
+  userId         String
+  workOrderId    String?
+  date           DateTime
+  hoursWorked    Decimal   @db.Decimal(5, 2)
+  hourlyRate     Decimal?  @db.Decimal(10, 2)
+  status         String    @default("draft") // draft, submitted, approved, rejected
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("timesheets")
+}
+
+// ===================================================================
+// QUALITY MANAGEMENT
+// ===================================================================
+
+model Procedure {
+  id                String    @id @default(uuid())
+  organizationId    String
+  procedureNumber   String
+  title             String
+  type              String    // WPS, PQR, NDT_procedure, inspection_procedure
+  version           Int       @default(1)
+  status            String    @default("draft") // draft, under_review, approved, obsolete
+  content           String
+  approvedBy        String?
+  approvalDate      DateTime?
+  effectiveDate     DateTime?
+  expirationDate    DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  inspections       Inspection[]
+
+  @@unique([organizationId, procedureNumber, version])
+  @@index([organizationId, status])
+  @@map("procedures")
+}
+
+model NonConformanceReport {
+  id                 String    @id @default(uuid())
+  organizationId     String
+  ncrNumber          String
+  inspectionId       String?
+  reportedBy         String
+  severity           String    // minor, major, critical
+  description        String
+  rootCause          String?
+  correctiveAction   String?
+  preventiveAction   String?
+  disposition        String?   // accept, repair, reject, use_as_is
+  status             String    @default("open") // open, under_investigation, resolved, closed
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  // Relations
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  inspection         Inspection?  @relation(fields: [inspectionId], references: [id])
+
+  @@unique([organizationId, ncrNumber])
+  @@index([organizationId, status])
+  @@map("non_conformance_reports")
+}
+
+model Audit {
+  id             String    @id @default(uuid())
+  organizationId String
+  auditNumber    String
+  auditType      String    // internal, external, certification
+  standard       String?
+  auditorId      String?
+  auditDate      DateTime?
+  findings       Json      @default("[]")
+  status         String    @default("planned") // planned, in_progress, completed
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, auditNumber])
+  @@index([organizationId])
+  @@map("audits")
+}
+
+// ===================================================================
+// EQUIPMENT & CALIBRATION
+// ===================================================================
+
+model Equipment {
+  id                        String    @id @default(uuid())
+  organizationId            String
+  equipmentNumber           String
+  name                      String
+  type                      String    // UT_device, RT_device, thickness_gauge, etc
+  manufacturer              String?
+  model                     String?
+  serialNumber              String?
+  purchaseDate              DateTime?
+  purchaseCost              Decimal?  @db.Decimal(10, 2)
+  status                    String    @default("available") // available, in_use, maintenance, out_of_service
+  calibrationFrequencyDays  Int       @default(365)
+
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  deletedAt                 DateTime?
+
+  // Relations
+  organization              Organization @relation(fields: [organizationId], references: [id])
+  calibrationRecords        CalibrationRecord[]
+
+  @@unique([organizationId, equipmentNumber])
+  @@index([organizationId, status])
+  @@map("equipment")
+}
+
+model CalibrationRecord {
+  id                String    @id @default(uuid())
+  equipmentId       String
+  calibrationDate   DateTime
+  nextDueDate       DateTime
+  performedBy       String
+  certificateNumber String?
+  certificateUrl    String?
+  status            String    @default("valid") // valid, expired, due_soon
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  equipment         Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@index([equipmentId])
+  @@index([nextDueDate])
+  @@map("calibration_records")
+}
+
+// ===================================================================
+// CLIENT MANAGEMENT
+// ===================================================================
+
+model Client {
+  id              String    @id @default(uuid())
+  organizationId  String
+  name            String
+  type            String    @default("direct") // direct, contractor, government
+  primaryContact  Json      @default("{}")
+  billingAddress  Json      @default("{}")
+  status          String    @default("active") // active, inactive
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  projects        Project[]
+  contracts       Contract[]
+
+  @@index([organizationId])
+  @@map("clients")
+}
+
+model Contract {
+  id             String    @id @default(uuid())
+  clientId       String
+  contractNumber String
+  startDate      DateTime
+  endDate        DateTime?
+  value          Decimal   @db.Decimal(15, 2)
+  paymentTerms   String?
+  slaTerms       Json      @default("{}")
+  status         String    @default("draft") // draft, active, expired, terminated
+  documentUrl    String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  client         Client    @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+  @@map("contracts")
+}
+
+// ===================================================================
+// NOTIFICATIONS & SYSTEM
+// ===================================================================
+
+model Notification {
+  id             String    @id @default(uuid())
+  userId         String
+  type           String    // certification_expiring, calibration_due, task_assigned, etc
+  title          String
+  message        String
+  priority       String    @default("medium") // low, medium, high
+  read           Boolean   @default(false)
+  actionUrl      String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, read])
+  @@map("notifications")
+}
