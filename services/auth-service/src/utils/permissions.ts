@@ -11,11 +11,17 @@ export const Permissions = {
   PROJECT_DELETE: 'project:delete',
 
   // Work order permissions
-  WORK_ORDER_CREATE: 'work_order:create',
-  WORK_ORDER_READ: 'work_order:read',
-  WORK_ORDER_UPDATE: 'work_order:update',
-  WORK_ORDER_DELETE: 'work_order:delete',
-  WORK_ORDER_ASSIGN: 'work_order:assign',
+  WORK_ORDER_CREATE: 'workorder:create',
+  WORK_ORDER_READ: 'workorder:read',
+  WORK_ORDER_UPDATE: 'workorder:update',
+  WORK_ORDER_DELETE: 'workorder:delete',
+  WORK_ORDER_ASSIGN: 'workorder:assign',
+
+  // Client permissions
+  CLIENT_CREATE: 'client:create',
+  CLIENT_READ: 'client:read',
+  CLIENT_UPDATE: 'client:update',
+  CLIENT_DELETE: 'client:delete',
 
   // User permissions
   USER_CREATE: 'user:create',
@@ -62,6 +68,7 @@ export const Permissions = {
   // Settings permissions
   SETTINGS_READ: 'settings:read',
   SETTINGS_UPDATE: 'settings:update',
+  SETTINGS_MANAGE: 'settings:manage',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];
@@ -87,6 +94,12 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     Permissions.WORK_ORDER_UPDATE,
     Permissions.WORK_ORDER_DELETE,
     Permissions.WORK_ORDER_ASSIGN,
+
+    // Client management
+    Permissions.CLIENT_CREATE,
+    Permissions.CLIENT_READ,
+    Permissions.CLIENT_UPDATE,
+    Permissions.CLIENT_DELETE,
 
     // User management (limited)
     Permissions.USER_READ,
@@ -133,6 +146,9 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     Permissions.WORK_ORDER_READ,
     Permissions.WORK_ORDER_UPDATE, // Can update assigned work orders
 
+    // Clients (read only)
+    Permissions.CLIENT_READ,
+
     // Inspections (full access)
     Permissions.INSPECTION_CREATE,
     Permissions.INSPECTION_READ,
@@ -158,6 +174,7 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     // Read-only access
     Permissions.PROJECT_READ,
     Permissions.WORK_ORDER_READ,
+    Permissions.CLIENT_READ,
     Permissions.INSPECTION_READ,
     Permissions.EQUIPMENT_READ,
     Permissions.CERTIFICATION_READ,
