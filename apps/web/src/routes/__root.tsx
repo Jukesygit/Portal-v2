@@ -1,10 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { Box } from '@mui/material';
 
-export const Route = createRootRoute({
-  component: RootComponent,
-});
-
 function RootComponent() {
   return (
     <Box
@@ -18,3 +14,7 @@ function RootComponent() {
     </Box>
   );
 }
+
+export const Route = createRootRoute({
+  component: RootComponent,
+});

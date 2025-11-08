@@ -2,10 +2,6 @@ import { createFileRoute } from '@tanstack/react-router';
 import { Box, Container, Typography, Button, Paper } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 
-export const Route = createFileRoute('/')({
-  component: IndexComponent,
-});
-
 function IndexComponent() {
   return (
     <Box
@@ -64,3 +60,7 @@ function IndexComponent() {
     </Box>
   );
 }
+
+export const Route = createFileRoute('/')({
+  component: IndexComponent,
+});
