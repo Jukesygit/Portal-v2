@@ -1,0 +1,59 @@
+{
+  "skills": {
+    "baseDir": ".claude/skills",
+    "autoActivation": true,
+    "rulesFile": ".claude/skill-rules.json"
+  },
+  "hooks": {
+    "baseDir": ".claude/hooks",
+    "enabled": {
+      "skill-activation-prompt": true,
+      "post-tool-use-tracker": true,
+      "type-check": false,
+      "error-handling-reminder": false
+    }
+  },
+  "agents": {
+    "baseDir": ".claude/agents"
+  },
+  "commands": {
+    "baseDir": ".claude/commands"
+  },
+  "docs": {
+    "baseDir": ".claude/docs",
+    "architectureDir": ".claude/docs/architecture",
+    "resourcesDir": ".claude/docs/resources"
+  },
+  "project": {
+    "type": "monorepo-candidate",
+    "framework": "react-vite",
+    "backend": "supabase",
+    "language": "javascript-react",
+    "domain": "ndt-testing",
+    "paths": {
+      "frontend": "NDT-SUITE-UMBER-Experimental/src",
+      "components": "NDT-SUITE-UMBER-Experimental/src/components",
+      "pages": "NDT-SUITE-UMBER-Experimental/src/pages",
+      "tools": "NDT-SUITE-UMBER-Experimental/src/tools",
+      "backend": "NDT-SUITE-UMBER-Experimental/supabase/functions",
+      "database": "NDT-SUITE-UMBER-Experimental/database",
+      "docs": "NDT-SUITE-UMBER-Experimental/docs",
+      "styles": "NDT-SUITE-UMBER-Experimental/src/styles"
+    },
+    "filePatterns": {
+      "frontend": "**/*.{jsx,js}",
+      "backend": "**/supabase/functions/**/*.ts",
+      "styles": "**/*.css",
+      "config": "**/*.{json,md}"
+    }
+  },
+  "devDocs": {
+    "enabled": true,
+    "autoUpdate": true,
+    "files": {
+      "plan": "ndt-suite-rebuild-plan.md",
+      "context": "ndt-suite-rebuild-context.md",
+      "tasks": "ndt-suite-rebuild-tasks.md"
+    }
+  }
+}

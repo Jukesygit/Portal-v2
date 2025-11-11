@@ -1,0 +1,178 @@
+{
+  "rules": [
+    {
+      "skillName": "frontend-development",
+      "triggers": {
+        "filePatterns": [
+          "**/src/**/*.jsx",
+          "**/src/**/*.js",
+          "**/src/components/**/*",
+          "**/src/pages/**/*",
+          "**/src/tools/**/*"
+        ],
+        "keywords": [
+          "react",
+          "component",
+          "useState",
+          "useEffect",
+          "jsx",
+          "vite",
+          "material-ui",
+          "mui",
+          "routing",
+          "frontend",
+          "ui",
+          "interface"
+        ],
+        "promptPatterns": [
+          "create.*component",
+          "add.*page",
+          "update.*ui",
+          "fix.*frontend",
+          "style.*",
+          "layout.*"
+        ]
+      },
+      "autoActivate": true,
+      "priority": 1
+    },
+    {
+      "skillName": "backend-development",
+      "triggers": {
+        "filePatterns": [
+          "**/supabase/functions/**/*.ts",
+          "**/database/**/*.sql",
+          "**/database/migrations/**/*"
+        ],
+        "keywords": [
+          "supabase",
+          "database",
+          "api",
+          "endpoint",
+          "function",
+          "postgresql",
+          "sql",
+          "migration",
+          "auth",
+          "rls",
+          "row level security"
+        ],
+        "promptPatterns": [
+          "create.*function",
+          "add.*endpoint",
+          "update.*api",
+          "fix.*backend",
+          "database.*",
+          "migration.*",
+          "schema.*"
+        ]
+      },
+      "autoActivate": true,
+      "priority": 1
+    },
+    {
+      "skillName": "ndt-domain-expert",
+      "triggers": {
+        "filePatterns": [
+          "**/src/tools/**/*",
+          "**/ndt-*.md",
+          "**/calculator*.{js,jsx}",
+          "**/visualizer*.{js,jsx}"
+        ],
+        "keywords": [
+          "tofd",
+          "cscan",
+          "pec",
+          "nii",
+          "ndt",
+          "inspection",
+          "ultrasonic",
+          "eddy current",
+          "coverage",
+          "dead zone",
+          "calibration",
+          "acceptance criteria",
+          "asnt",
+          "iso 9712",
+          "asme"
+        ],
+        "promptPatterns": [
+          ".*calculator.*",
+          ".*visualizer.*",
+          ".*inspection.*",
+          ".*coverage.*",
+          ".*ndt.*",
+          ".*tofd.*",
+          ".*cscan.*"
+        ]
+      },
+      "autoActivate": true,
+      "priority": 2
+    },
+    {
+      "skillName": "testing-development",
+      "triggers": {
+        "filePatterns": [
+          "**/*.test.{js,jsx,ts,tsx}",
+          "**/*.spec.{js,jsx,ts,tsx}",
+          "**/tests/**/*"
+        ],
+        "keywords": [
+          "test",
+          "testing",
+          "vitest",
+          "jest",
+          "playwright",
+          "e2e",
+          "unit test",
+          "integration test",
+          "coverage",
+          "mock",
+          "spy"
+        ],
+        "promptPatterns": [
+          "write.*test",
+          "add.*test",
+          "fix.*test",
+          "test.*coverage",
+          "run.*test"
+        ]
+      },
+      "autoActivate": true,
+      "priority": 1
+    },
+    {
+      "skillName": "documentation",
+      "triggers": {
+        "filePatterns": [
+          "**/*.md",
+          "**/docs/**/*",
+          "**/README*"
+        ],
+        "keywords": [
+          "documentation",
+          "readme",
+          "docs",
+          "document",
+          "guide",
+          "api docs",
+          "architecture"
+        ],
+        "promptPatterns": [
+          "create.*doc",
+          "update.*doc",
+          "write.*guide",
+          "document.*"
+        ]
+      },
+      "autoActivate": false,
+      "priority": 3
+    }
+  ],
+  "globalSettings": {
+    "maxActiveSkills": 3,
+    "activationThreshold": 2,
+    "deactivateOnContextSwitch": false,
+    "verboseLogging": false
+  }
+}
